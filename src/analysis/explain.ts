@@ -104,8 +104,17 @@ export function explain(input: ExplainInput): Explanation {
   const known = live.every((p) => p.equity !== null);
   if (!known || live.length === 0) return { headline: null, lines: [], leaderSeats: [], potOdds: null };
 
-  const best = Math.max(...live.map((p) => p.equity!));
-  const leaders = live.filter((p) => Math.abs(p.equity! - best) < 1e-9);
+  // "Ahead" means the best hand right now; preflop, with no made hands yet,
+  // it means the best chance to win. The equity favourite can be a player who
+  // is behind (a big draw), and the explanation says so.
+  const bestEquity = Math.max(...live.map((p) => p.equity!));
+  const madeScore = new Map<number, number>();
+  if (street !== 'preflop') for (const p of live) madeScore.set(p.seat, evaluate([...p.cards, ...board]));
+  const bestMade = Math.max(...madeScore.values());
+  const leaders =
+    street === 'preflop'
+      ? live.filter((p) => Math.abs(p.equity! - bestEquity) < 1e-9)
+      : live.filter((p) => madeScore.get(p.seat) === bestMade);
   const leaderSeats = leaders.map((p) => p.seat);
   const leader = leaders[0];
   const label = (p: ExplainPlayer) => madeHandLabel(p.cards, board);
@@ -121,13 +130,12 @@ export function explain(input: ExplainInput): Explanation {
   } else if (street === 'preflop') {
     headline =
       leaders.length > 1
-        ? `${joinNames(leaders.map((p) => p.name))} are level at ${pct(best)} each.`
-        : `${leader.name} ${leader.isHero ? 'are' : 'is'} the favourite with ${lc(label(leader))} (${pct(best)}).`;
+        ? `${joinNames(leaders.map((p) => p.name))} are level at ${pct(bestEquity)} each.`
+        : `${leader.name} ${leader.isHero ? 'are' : 'is'} the favourite with ${lc(label(leader))} (${pct(bestEquity)}).`;
+  } else if (leaders.length > 1) {
+    headline = `${joinNames(leaders.map((p) => p.name))} are level with ${lc(label(leader))} (${leaders.map((p) => pct(p.equity!)).join(' and ')} to win).`;
   } else {
-    headline =
-      leaders.length > 1
-        ? `${joinNames(leaders.map((p) => p.name))} are level with ${lc(label(leader))} (${pct(best)} each).`
-        : `${leader.name} ${leader.isHero ? 'lead' : 'leads'} with ${lc(label(leader))} (${pct(best)} to win).`;
+    headline = `${leader.name} ${leader.isHero ? 'are' : 'is'} ahead with ${lc(label(leader))} (${pct(leader.equity!)} to win).`;
   }
 
   // One line per player behind, hero first.
@@ -142,13 +150,17 @@ export function explain(input: ExplainInput): Explanation {
         continue;
       }
       const outs = p.outs ?? [];
+      const favourite = Math.abs(p.equity! - bestEquity) < 1e-9 && p.equity! > Math.max(...leaders.map((l) => l.equity!));
       const holding = `${who} ${you ? 'have' : 'has'} ${lc(label(p))}`;
       if (p.equity === 0) {
         lines.push(`${holding} and ${you ? 'are' : 'is'} drawing dead.`);
       } else if (outs.length === 0) {
         lines.push(`${holding}. No single card puts ${you ? 'you' : 'them'} ahead; ${you ? 'you need' : 'they need'} help on both the turn and river (${eq}).`);
       } else {
-        lines.push(`${holding}, drawing to ${outs.length} out${outs.length === 1 ? '' : 's'} (${describeOuts(p.cards, board, outs)}): ${eq} to win.`);
+        lines.push(
+          `${holding}, drawing to ${outs.length} out${outs.length === 1 ? '' : 's'} (${describeOuts(p.cards, board, outs)}): ${eq} to win` +
+            (favourite ? `, the favourite despite being behind.` : '.'),
+        );
       }
     }
   }

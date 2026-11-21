@@ -44,7 +44,7 @@ describe('Learning explanations', () => {
     );
     const e = explain({ players, board, pot: 1200, toCall: 400, heroToAct: true });
     expect(e.leaderSeats).toEqual([1]);
-    expect(e.headline).toMatch(/^Ava leads with pair of kings \(\d+% to win\)\.$/);
+    expect(e.headline).toMatch(/^Ava is ahead with pair of kings \(\d+% to win\)\.$/);
     expect(e.lines[0]).toMatch(/^You have ace high, drawing to 12 outs \(9 to a flush, 3 to a pair\): \d+% to win\.$/);
     expect(e.potOdds!.text).toMatch(/^Calling \$4 into \$12 needs 25%\. You have \d+%\./);
     expect(e.potOdds!.need).toBeCloseTo(0.25);
@@ -60,7 +60,7 @@ describe('Learning explanations', () => {
       '3h 7h 9h Jh',
     );
     const e = explain({ players, board, pot: 1000, toCall: 0, heroToAct: false });
-    expect(e.headline).toBe('You lead with flush, ace high (100% to win).');
+    expect(e.headline).toBe('You are ahead with flush, ace high (100% to win).');
     expect(e.lines).toEqual(['Bruno has king high and is drawing dead.']);
     expect(e.potOdds).toBeNull();
   });
@@ -97,6 +97,25 @@ describe('Learning explanations', () => {
     const { players, board } = spot([{ name: 'You', cards: 'Ah 5h', hero: true }, { name: 'Ava', cards: 'Kc Kd' }], '2h 7h Jc');
     const e = explain({ players: players.map((p) => ({ ...p, equity: null })), board, pot: 0, toCall: 0, heroToAct: false });
     expect(e.headline).toBeNull();
+  });
+
+  it('separates the best hand now from the equity favourite', () => {
+    // Chen's queen high is ahead on the flop; Bruno's flush draw is the favourite.
+    const { players, board } = spot(
+      [
+        { name: 'You', cards: '2d Js', hero: true },
+        { name: 'Ava', cards: '5h 2s' },
+        { name: 'Bruno', cards: 'Th Jh' },
+        { name: 'Chen', cards: 'Qd 9h' },
+      ],
+      '3h 7s 6h',
+    );
+    const e = explain({ players, board, pot: 800, toCall: 0, heroToAct: false });
+    expect(e.leaderSeats).toEqual([3]);
+    expect(e.headline).toMatch(/^Chen is ahead with queen high \(\d+% to win\)\.$/);
+    const bruno = e.lines.find((l) => l.startsWith('Bruno'))!;
+    expect(bruno).toMatch(/drawing to \d+ outs \(.*flush.*\): \d+% to win, the favourite despite being behind\.$/);
+    expect(e.lines.some((l) => l.startsWith('Chen'))).toBe(false);
   });
 
   it('keeps card ranks capitalised mid-sentence', () => {

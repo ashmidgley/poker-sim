@@ -83,7 +83,7 @@ export function SeatView({ m }: { m: SeatViewModel }) {
         <div className="flex max-w-full flex-col items-center gap-0.5 text-center text-[10px] leading-tight sm:text-[11px]">
           <div className="flex items-center gap-1">
             {m.learning.leader && !m.folded && (
-              <span className="rounded bg-good px-1 font-semibold text-black">LEADS</span>
+              <span className="rounded bg-good px-1 font-semibold text-black">AHEAD</span>
             )}
             {m.learning.winPct !== null && !m.folded && (
               <span className={`font-mono font-semibold ${m.learning.leader ? 'text-good' : 'text-foreground'}`}>{m.learning.winPct}</span>

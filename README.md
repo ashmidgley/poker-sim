@@ -7,6 +7,12 @@ A No-Limit Texas Hold'em cash game simulator for learning two things:
 
 You play one seat against 1 to 8 bots (default 3). Every hand is stored as an event log, so it can be replayed and analysed later.
 
+![Learning mode: every hand face up, with each player's chance to win, their outs, and pot odds against equity](docs/screenshots/learning-mode.jpg)
+
+| Playing a hand | Hand replayer with the learning overlay | Lobby |
+|---|---|---|
+| ![A hand in play: bets in front of each seat, the pot, action controls and the action log](docs/screenshots/table.jpg) | ![Stepping through a stored hand: Chen is ahead, while Bruno's flush draw makes him the favourite](docs/screenshots/replayer.jpg) | ![The lobby: bankroll, open sessions, mode, opponents, styles, stakes and buy-in](docs/screenshots/lobby.jpg) |
+
 ## Status
 
 Phase 5 of 7 is complete. The game is playable against bots, every hand is saved and replayable, and sessions resume after a refresh. Without a database the app saves to the browser; with Neon connected it saves through the passphrase-protected API.
@@ -131,7 +137,7 @@ drizzle/       Generated SQL migrations
 
 ## Tests
 
-99 tests across the engine, bots, table session, data layer and learning explanations, including:
+100 tests across the engine, bots, table session, data layer and learning explanations, including:
 
 - **Chip conservation** over 2,000 random hands of 2 to 9 players.
 - **Exact pot outcomes** for side pots with three all-ins of different sizes, and for split pots with an odd chip.
