@@ -98,11 +98,13 @@ The passphrase is exchanged at `/unlock` for an `httpOnly` cookie and is never s
 ## Connecting the database
 
 1. In the Vercel project, open **Storage**, add **Neon** from the Marketplace and connect it to the project. This sets `DATABASE_URL`.
-2. Pull the variables locally with `vercel env pull .env.local` (or paste `DATABASE_URL` into `.env.local`). Check which Neon branch or database it points at before the next step.
-3. Create the tables: `pnpm db:migrate`. This applies the SQL in `drizzle/` to `DATABASE_URL`.
+2. Put the connection string in `.env.local` as `DATABASE_URL`. Vercel keeps production variables as sensitive, so `vercel env pull` writes them as empty strings; copy the pooled connection string from the Neon console (**Connect**) instead. Check which Neon branch or database it points at before the next step.
+3. Create the tables: `pnpm db:migrate`. This applies the SQL in `drizzle/` to `DATABASE_URL` (the Drizzle config reads `.env.local` itself).
 4. Redeploy. The "Local storage only" badge disappears and the app asks for the passphrase.
 
 Hands played in browser-storage mode stay in that browser; they are not copied to the database.
+
+Once `.env.local` holds the production `DATABASE_URL`, `pnpm dev` reads and writes production data. To run locally on browser storage instead, start it with `DATABASE_URL= pnpm dev`.
 
 `pnpm db:generate` creates a new migration after a schema change and needs no database.
 

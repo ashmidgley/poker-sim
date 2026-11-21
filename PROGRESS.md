@@ -87,9 +87,9 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 ## User steps (not for the builder)
 
 - [x] Vercel project created and repository connected (pushes to `main` deploy to production)
-- [ ] Neon Postgres added from the Vercel Marketplace (`DATABASE_URL` set)
+- [x] Neon Postgres added from the Vercel Marketplace (`DATABASE_URL` set)
 - [x] `APP_PASSPHRASE` set in Vercel
-- [ ] Migrations run (`pnpm db:migrate`)
+- [x] Migrations run (`pnpm db:migrate`), applied to the production Neon database `neondb` and verified (4 tables, 2 indexes, 1 migration recorded)
 - [ ] Deployed and smoke-tested
 
 ## Notes / deviations
@@ -126,3 +126,6 @@ Record here anything built differently from `PLAN.md`, and why. One line each.
 - Phase 4: ESLint ignores unused variables prefixed with `_` (used to drop fields from objects).
 - Phase 4: unlock failures wait 600 ms before answering, to slow guessing.
 - Local storage mode keeps hand logs in localStorage (about 5 MB per site), enough for roughly a thousand hands; the database has no such limit.
+- Setup: `drizzle.config.ts` loads `.env.local` itself (drizzle-kit does not), so `pnpm db:migrate` uses the same `DATABASE_URL` as `next dev`.
+- Setup: Vercel stores production variables as sensitive, so `vercel env pull` writes them as empty strings; the connection string was copied from the Neon console into `.env.local` instead. Empty values are treated as unset by the app.
+- Builder note: `.env.local` now holds the production `DATABASE_URL`. Local development and checks must run with it overridden (`DATABASE_URL= pnpm dev`) so they use browser storage, never production.
