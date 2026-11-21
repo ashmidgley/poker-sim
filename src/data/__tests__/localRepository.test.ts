@@ -161,3 +161,34 @@ describe('Retry queue', () => {
     expect(q.size()).toBe(0);
   });
 });
+
+describe('Guest mode', () => {
+  const guest = () =>
+    new LocalRepository(new MemoryStore(), () => '2026-11-21T10:00:00.000Z', () => crypto.randomUUID(), { guest: true });
+
+  it('plays without a bankroll: no balance check and no ledger entries', async () => {
+    const r = guest();
+    expect(r.kind).toBe('guest');
+    const s = await r.createSession(sessionInput()); // balance is 0, still allowed
+    await r.rebuy(s.id, 20000);
+    await r.endSession(s.id, 12345);
+    expect(await r.getBankroll()).toEqual({ balance: 0, transactions: [] });
+    await expect(r.addTransaction({ id: crypto.randomUUID(), type: 'deposit', amount: 100 })).rejects.toMatchObject({
+      code: 'unauthorized',
+    });
+  });
+
+  it('keeps guest data apart from the owner data in the same browser', async () => {
+    const { PrefixedStore } = await import('../kv');
+    const shared = new MemoryStore();
+    const owner = new LocalRepository(shared);
+    const visitor = new LocalRepository(new PrefixedStore(shared, 'guest:'), undefined, undefined, { guest: true });
+    await owner.addTransaction({ id: crypto.randomUUID(), type: 'deposit', amount: 5000 });
+    await visitor.createSession(sessionInput());
+    expect((await owner.listSessions()).length).toBe(0);
+    expect((await visitor.listSessions()).length).toBe(1);
+    expect((await owner.getBankroll()).balance).toBe(5000);
+    expect(shared.getItem('poker-sim:guest:sessions')).not.toBeNull();
+    expect(shared.getItem('poker-sim:sessions')).toBeNull();
+  });
+});

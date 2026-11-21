@@ -45,3 +45,26 @@ export function browserStore(): KeyValueStore {
     return new MemoryStore();
   }
 }
+
+/**
+ * A view of a store whose app keys live under a sub-prefix, e.g. guest data at
+ * "poker-sim:guest:..." so it never mixes with the owner's local data.
+ */
+export class PrefixedStore implements KeyValueStore {
+  constructor(
+    private inner: KeyValueStore,
+    private sub: string,
+  ) {}
+  private map(key: string) {
+    return key.startsWith(PREFIX) ? `${PREFIX}${this.sub}${key.slice(PREFIX.length)}` : key;
+  }
+  getItem(key: string) {
+    return this.inner.getItem(this.map(key));
+  }
+  setItem(key: string, value: string) {
+    this.inner.setItem(this.map(key), value);
+  }
+  removeItem(key: string) {
+    this.inner.removeItem(this.map(key));
+  }
+}

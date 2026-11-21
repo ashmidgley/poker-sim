@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { HttpRepository } from './httpRepository';
-import { browserStore, type KeyValueStore } from './kv';
+import { browserStore, PREFIX, PrefixedStore, type KeyValueStore } from './kv';
 import { LocalRepository } from './localRepository';
 import type { Repository } from './repository';
 import { QUEUE_EVENT, RetryQueue } from './retryQueue';
@@ -18,6 +18,29 @@ interface RepositoryContextValue {
   health: Health | null; // last /api/health answer (null if unreachable)
   /** Re-run the health check (after unlocking or locking). */
   refresh: () => void;
+  /** Play without the passphrase: browser-only, play money, no access to the owner's data. */
+  enterGuest: () => void;
+  /** Leave guest mode (for example, to unlock). */
+  exitGuest: () => void;
+}
+
+const GUEST_FLAG = `${PREFIX}guest-mode`;
+
+function readGuestFlag(store: KeyValueStore): boolean {
+  try {
+    return store.getItem(GUEST_FLAG) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeGuestFlag(store: KeyValueStore, on: boolean): void {
+  try {
+    if (on) store.setItem(GUEST_FLAG, '1');
+    else store.removeItem(GUEST_FLAG);
+  } catch {
+    // ignore: guest mode then lasts for this page only
+  }
 }
 
 const RepositoryContext = createContext<RepositoryContextValue | null>(null);
@@ -68,10 +91,20 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (health.authRequired && !health.unlocked) {
+        if (readGuestFlag(kv)) {
+          // Guests get their own browser-only, play-money space and never call the protected API.
+          const guestStore = new PrefixedStore(kv, 'guest:');
+          setStore(guestStore);
+          setRepo(new LocalRepository(guestStore, undefined, undefined, { guest: true }));
+          setQueue(null);
+          setStatus('ready');
+          return;
+        }
         setRepo(null);
         setStatus('locked');
         return;
       }
+      writeGuestFlag(kv, false); // unlocked: always the owner
       const q = new RetryQueue(kv);
       setQueue(q);
       setRepo(new HttpRepository(q));
@@ -98,9 +131,18 @@ export function RepositoryProvider({ children }: { children: ReactNode }) {
     };
   }, [queue, repo]);
 
+  const enterGuest = useCallback(() => {
+    writeGuestFlag(browserStore(), true);
+    refresh();
+  }, [refresh]);
+  const exitGuest = useCallback(() => {
+    writeGuestFlag(browserStore(), false);
+    refresh();
+  }, [refresh]);
+
   const value = useMemo(
-    () => ({ status, repo, store, pendingSync: queue ? pendingSync : 0, health, refresh }),
-    [status, repo, store, pendingSync, queue, health, refresh],
+    () => ({ status, repo, store, pendingSync: queue ? pendingSync : 0, health, refresh, enterGuest, exitGuest }),
+    [status, repo, store, pendingSync, queue, health, refresh, enterGuest, exitGuest],
   );
   return (
     <RepositoryContext.Provider value={value}>

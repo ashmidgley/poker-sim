@@ -16,7 +16,8 @@ import type {
  * Methods reject with DataError.
  */
 export interface Repository {
-  readonly kind: 'http' | 'local';
+  /** http: the API; local: this browser (no database); guest: this browser, play money only. */
+  readonly kind: 'http' | 'local' | 'guest';
 
   getSettings(): Promise<Settings>;
   updateSettings(patch: SettingsPatch): Promise<Settings>;

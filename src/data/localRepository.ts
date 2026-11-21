@@ -28,13 +28,24 @@ const K = {
  * logs are stored one key per hand; summaries in one list.
  */
 export class LocalRepository implements Repository {
-  readonly kind = 'local' as const;
+  readonly kind: 'local' | 'guest';
+  /** Guests play without a bankroll: buy-ins are play money and nothing is written to a ledger. */
+  private readonly trackBankroll: boolean;
 
   constructor(
     private store: KeyValueStore,
     private now: () => string = () => new Date().toISOString(),
     private newId: () => string = () => crypto.randomUUID(),
-  ) {}
+    opts: { guest?: boolean } = {},
+  ) {
+    this.kind = opts.guest ? 'guest' : 'local';
+    this.trackBankroll = !opts.guest;
+  }
+
+  /** Whether a session's chips come from the bankroll ledger. */
+  private usesLedger(learningMode: boolean): boolean {
+    return this.trackBankroll && !learningMode;
+  }
 
   private write(key: string, value: unknown) {
     try {
@@ -80,7 +91,7 @@ export class LocalRepository implements Repository {
   async createSession(input: CreateSessionInput): Promise<Session> {
     const existing = await this.getSession(input.id);
     if (existing) return existing; // idempotent
-    if (!input.learningMode && input.buyIn > this.balance()) throw new DataError('insufficient_bankroll');
+    if (this.usesLedger(input.learningMode) && input.buyIn > this.balance()) throw new DataError('insufficient_bankroll');
     const session: Session = {
       id: input.id,
       startedAt: this.now(),
@@ -98,7 +109,7 @@ export class LocalRepository implements Repository {
       handsPlayed: 0,
     };
     this.saveSession(session);
-    if (!input.learningMode) this.addTx('buy_in', -input.buyIn, session.id, null);
+    if (this.usesLedger(input.learningMode)) this.addTx('buy_in', -input.buyIn, session.id, null);
     return session;
   }
 
@@ -106,10 +117,10 @@ export class LocalRepository implements Repository {
     const s = await this.getSession(id);
     if (!s) throw new DataError('not_found');
     if (s.endedAt) throw new DataError('session_ended');
-    if (!s.learningMode && amount > this.balance()) throw new DataError('insufficient_bankroll');
+    if (this.usesLedger(s.learningMode) && amount > this.balance()) throw new DataError('insufficient_bankroll');
     const next = { ...s, totalBoughtIn: s.totalBoughtIn + amount };
     this.saveSession(next);
-    if (!s.learningMode) this.addTx('buy_in', -amount, id, 'Rebuy');
+    if (this.usesLedger(s.learningMode)) this.addTx('buy_in', -amount, id, 'Rebuy');
     return next;
   }
 
@@ -119,7 +130,7 @@ export class LocalRepository implements Repository {
     if (s.endedAt) return s; // idempotent
     const next = { ...s, endedAt: this.now(), cashedOut: cashOut };
     this.saveSession(next);
-    if (!s.learningMode) this.addTx('cash_out', cashOut, id, null);
+    if (this.usesLedger(s.learningMode)) this.addTx('cash_out', cashOut, id, null);
     return next;
   }
 
@@ -186,6 +197,7 @@ export class LocalRepository implements Repository {
   }
 
   async addTransaction(input: AddTransactionInput): Promise<{ balance: number; transaction: Transaction }> {
+    if (!this.trackBankroll) throw new DataError('unauthorized', 'Guests play without a bankroll.');
     const existing = this.transactions().find((t) => t.id === input.id);
     if (existing) return { balance: this.balance(), transaction: existing }; // idempotent
     if (input.type === 'withdrawal' && input.amount > this.balance()) throw new DataError('insufficient_bankroll');

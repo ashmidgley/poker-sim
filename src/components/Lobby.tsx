@@ -86,17 +86,23 @@ export function Lobby() {
   if (status !== 'ready' || !repo || !bankroll) {
     return <p className="p-6 text-muted">{error ?? 'Loading…'}</p>;
   }
-  if (!bankroll.hasHistory) {
+  const guest = repo.kind === 'guest';
+  if (!bankroll.hasHistory && !guest) {
     return <StartingBankroll repo={repo} onDone={load} />;
   }
+  const playMoney = guest || learningMode;
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-8">
       <div className="flex items-baseline justify-between gap-4">
         <h1 className="text-2xl font-semibold tracking-tight">New cash game</h1>
-        <span className="text-sm text-muted">
-          Bankroll <span className="font-mono text-foreground">{formatMoney(bankroll.balance)}</span>
-        </span>
+        {guest ? (
+          <span className="text-sm text-good">Guest: play money</span>
+        ) : (
+          <span className="text-sm text-muted">
+            Bankroll <span className="font-mono text-foreground">{formatMoney(bankroll.balance)}</span>
+          </span>
+        )}
       </div>
       <p className="mt-1 text-sm text-muted">No-Limit Texas Hold&apos;em against bots.</p>
 
@@ -131,7 +137,9 @@ export function Lobby() {
           <p className="mt-1.5 text-xs text-muted">
             {learningMode
               ? 'Every hand face up, with win chances, outs and an explanation on each street. Play money: nothing touches your bankroll or stats.'
-              : 'Normal play: opponents\' cards stay hidden and results count toward your bankroll.'}
+              : guest
+                ? 'Normal play: opponents\' cards stay hidden. As a guest, chips are play money.'
+                : 'Normal play: opponents\' cards stay hidden and results count toward your bankroll.'}
           </p>
         </fieldset>
 
@@ -256,7 +264,7 @@ export function Lobby() {
           disabled={starting}
           className="rounded-lg bg-accent py-3 font-semibold text-black hover:brightness-110 disabled:opacity-60"
         >
-          {starting ? 'Starting…' : `Sit down with ${formatMoney(buyIn)}${learningMode ? ' (play money)' : ''}`}
+          {starting ? 'Starting…' : `Sit down with ${formatMoney(buyIn)}${playMoney ? ' (play money)' : ''}`}
         </button>
       </form>
     </div>

@@ -7,15 +7,17 @@ import { useRepository } from '@/data/RepositoryProvider';
 /** Exchanges the passphrase for an httpOnly cookie via /api/unlock. The passphrase is never stored in the browser. */
 export function UnlockForm() {
   const router = useRouter();
-  const { health, refresh } = useRepository();
+  const { health, status, repo, refresh, enterGuest } = useRepository();
   const [passphrase, setPassphrase] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
-  // Already unlocked (or no passphrase needed): go to the lobby.
+  // Go to the lobby once unlocked (or no passphrase is needed), or once guest
+  // mode is active. Navigating any earlier would bounce back here while locked.
+  const inGuestMode = status === 'ready' && repo?.kind === 'guest';
   useEffect(() => {
-    if (health?.unlocked) router.replace('/');
-  }, [health, router]);
+    if (health?.unlocked || inGuestMode) router.replace('/');
+  }, [health, inGuestMode, router]);
 
   const unlock = async () => {
     setChecking(true);
@@ -69,6 +71,18 @@ export function UnlockForm() {
           {checking ? 'Checking…' : 'Unlock'}
         </button>
       </form>
+      <div className="mt-8 border-t border-line pt-6">
+        <p className="text-sm text-muted">
+          No passphrase? Play as a guest with play money. Your hands stay in this browser and there is no bankroll tracking.
+        </p>
+        <button
+          type="button"
+          onClick={enterGuest}
+          className="mt-3 w-full rounded-lg border border-line py-2.5 font-semibold hover:bg-surface-2"
+        >
+          Play as guest
+        </button>
+      </div>
     </div>
   );
 }

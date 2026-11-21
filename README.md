@@ -32,6 +32,7 @@ Task-level progress and every deviation from the plan are in [`PROGRESS.md`](PRO
 - **Bankroll.** A starting bankroll on first run. Buy-ins, rebuys and top-ups come out of it; cashing out puts your stack back. You cannot buy in for more than you have.
 - **Sessions.** Every completed hand is saved. A refresh resumes at the next hand (a hand interrupted mid-way is void and your stack returns to what it was before it). Open sessions are listed in the lobby with Resume and Cash out.
 - **History.** Every hand with position, cards, board and result, and a replayer that steps through the action forwards and back, with an option to show every player's cards.
+- **Guest play.** Anyone without the passphrase can choose "Play as guest" on the unlock screen: play money, no bankroll, hands kept in their own browser. Guests never reach the protected API or your data.
 - **Learning mode.** Choose Learning in the lobby for a play-money session where every hand is face up. Each seat shows its chance of winning, what it holds and its outs; the leader is badged; a panel explains who is ahead, what the players behind need, and your pot odds against your equity when you face a bet. Folded hands stay visible, dimmed. The same overlay is available on any hand in the replayer. Learning hands never touch your bankroll and are excluded from stats.
 - **Opponents.**
 
@@ -94,7 +95,7 @@ Listed in [`.env.example`](.env.example). Local values go in `.env.local`, which
 | `DATABASE_URL` | Neon Postgres connection string | The app saves everything in the browser's localStorage and shows a "Local storage only" badge |
 | `APP_PASSPHRASE` | Passphrase for the unlock screen that protects the API | Skipped in development; API routes refuse to run in production |
 
-The passphrase is exchanged at `/unlock` for an `httpOnly` cookie and is never stored in the browser.
+The passphrase is exchanged at `/unlock` for an `httpOnly` cookie and is never stored in the browser. Visitors without it can play as guests (play money, browser-only storage).
 
 ## Connecting the database
 
@@ -130,7 +131,7 @@ drizzle/       Generated SQL migrations
 
 ## Tests
 
-97 tests across the engine, bots, table session, data layer and learning explanations, including:
+99 tests across the engine, bots, table session, data layer and learning explanations, including:
 
 - **Chip conservation** over 2,000 random hands of 2 to 9 players.
 - **Exact pot outcomes** for side pots with three all-ins of different sizes, and for split pots with an odd chip.
