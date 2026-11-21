@@ -1,0 +1,519 @@
+{
+  "id": "2901994d-3125-4d09-bed9-14e81e3448ea",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.bankroll_transactions": {
+      "name": "bankroll_transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bankroll_transactions_session_id_sessions_id_fk": {
+          "name": "bankroll_transactions_session_id_sessions_id_fk",
+          "tableFrom": "bankroll_transactions",
+          "tableTo": "sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hands": {
+      "name": "hands",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hand_number": {
+          "name": "hand_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "played_at": {
+          "name": "played_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "learning_mode": {
+          "name": "learning_mode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "small_blind": {
+          "name": "small_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "big_blind": {
+          "name": "big_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "num_players": {
+          "name": "num_players",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_seat": {
+          "name": "hero_seat",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "button_seat": {
+          "name": "button_seat",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_position": {
+          "name": "hero_position",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_hole_cards": {
+          "name": "hero_hole_cards",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "board": {
+          "name": "board",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pot_total": {
+          "name": "pot_total",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rake": {
+          "name": "rake",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_net": {
+          "name": "hero_net",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_rake_paid": {
+          "name": "hero_rake_paid",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_vpip": {
+          "name": "hero_vpip",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_pfr": {
+          "name": "hero_pfr",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_saw_flop": {
+          "name": "hero_saw_flop",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "went_to_showdown": {
+          "name": "went_to_showdown",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hero_won": {
+          "name": "hero_won",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "engine_version": {
+          "name": "engine_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "events": {
+          "name": "events",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "hands_session_number": {
+          "name": "hands_session_number",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "hand_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "hands_played_at": {
+          "name": "hands_played_at",
+          "columns": [
+            {
+              "expression": "played_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "hands_session_id_sessions_id_fk": {
+          "name": "hands_session_id_sessions_id_fk",
+          "tableFrom": "hands",
+          "tableTo": "sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "ended_at": {
+          "name": "ended_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seed": {
+          "name": "seed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "learning_mode": {
+          "name": "learning_mode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "small_blind": {
+          "name": "small_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "big_blind": {
+          "name": "big_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rake_bps": {
+          "name": "rake_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rake_cap": {
+          "name": "rake_cap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rake_round_to": {
+          "name": "rake_round_to",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "no_flop_no_drop": {
+          "name": "no_flop_no_drop",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opponents": {
+          "name": "opponents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bot_profiles": {
+          "name": "bot_profiles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stop_loss": {
+          "name": "stop_loss",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "total_bought_in": {
+          "name": "total_bought_in",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cashed_out": {
+          "name": "cashed_out",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hands_played": {
+          "name": "hands_played",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.settings": {
+      "name": "settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "buy_in_rule": {
+          "name": "buy_in_rule",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 25
+        },
+        "default_opponents": {
+          "name": "default_opponents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "default_small_blind": {
+          "name": "default_small_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "default_big_blind": {
+          "name": "default_big_blind",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 200
+        },
+        "default_buy_in_bb": {
+          "name": "default_buy_in_bb",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "rake_preset": {
+          "name": "rake_preset",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'live'"
+        },
+        "rake_bps": {
+          "name": "rake_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1000
+        },
+        "rake_cap": {
+          "name": "rake_cap",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 600
+        },
+        "rake_round_to": {
+          "name": "rake_round_to",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "no_flop_no_drop": {
+          "name": "no_flop_no_drop",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "stop_loss_buy_ins": {
+          "name": "stop_loss_buy_ins",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "auto_skip_when_folded": {
+          "name": "auto_skip_when_folded",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

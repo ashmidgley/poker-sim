@@ -13,11 +13,12 @@ interface Props {
   bigBlind: number;
   needsRebuy: boolean;
   onNext: () => void;
-  onRebuy: (amount: number) => void;
+  onRebuy: (amount: number) => void | Promise<void>;
+  busy?: boolean;
 }
 
 /** Shown when no hand is running: result of the last hand, rebuy / top-up, and the deal button. */
-export function BetweenHands({ handNumber, events, heroSeat, heroStack, bigBlind, needsRebuy, onNext, onRebuy }: Props) {
+export function BetweenHands({ handNumber, events, heroSeat, heroStack, bigBlind, needsRebuy, onNext, onRebuy, busy = false }: Props) {
   const limits = buyInLimits(bigBlind);
   const topUpMax = maxTopUp(heroStack, bigBlind);
   const [amount, setAmount] = useState(needsRebuy ? limits.default : Math.min(topUpMax, limits.default));
@@ -53,6 +54,7 @@ export function BetweenHands({ handNumber, events, heroSeat, heroStack, bigBlind
         <div className="mt-3 flex gap-2">
           <button
             type="button"
+            disabled={busy}
             onClick={() => onRebuy(value)}
             className="rounded-lg bg-accent px-4 py-2 font-semibold text-black hover:brightness-110"
           >

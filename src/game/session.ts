@@ -1,5 +1,6 @@
 import { hashSeed, mulberry32, type RakeConfig } from '@/engine';
-import { isArchetypeId, randomMix, type ArchetypeId } from '@/bots';
+import { randomMix, type ArchetypeId } from '@/bots';
+import type { Session } from '@/data/types';
 
 /** Everything needed to run a table session. Amounts are cents. */
 export interface SessionConfig {
@@ -10,44 +11,34 @@ export interface SessionConfig {
   botProfiles: ArchetypeId[]; // index i is the bot in seat i + 1
   smallBlind: number;
   bigBlind: number;
-  buyIn: number;
+  buyIn: number; // the hero's starting stack for a session with no saved state
   rake: RakeConfig;
   learningMode: boolean;
 }
-
-const KEY = (id: string) => `poker-sim:session-config:${id}`;
 
 /** A seeded random archetype mix for a session. */
 export function seededMix(seed: string, count: number): ArchetypeId[] {
   return randomMix(count, mulberry32(hashSeed(`${seed}:bot-mix`)));
 }
 
-/** Fill in anything an older stored config lacks. */
-export function normalizeConfig(raw: SessionConfig): SessionConfig {
-  const valid =
-    Array.isArray(raw.botProfiles) && raw.botProfiles.length === raw.opponents && raw.botProfiles.every(isArchetypeId);
-  return valid ? raw : { ...raw, botProfiles: seededMix(raw.seed, raw.opponents) };
-}
-
 /**
- * Session configs live in localStorage so a refresh can find the table
- * again. Phase 4 moves this behind the Repository.
+ * The table config for a stored session. With no hands and no saved table
+ * state, everything bought in so far (initial buy-in plus any top-ups) is the
+ * hero's stack.
  */
-export function saveSessionConfig(config: SessionConfig): void {
-  try {
-    localStorage.setItem(KEY(config.id), JSON.stringify(config));
-  } catch {
-    // Storage unavailable (private mode, quota): the session still runs in memory.
-  }
-}
-
-export function loadSessionConfig(id: string): SessionConfig | null {
-  try {
-    const raw = localStorage.getItem(KEY(id));
-    return raw ? normalizeConfig(JSON.parse(raw) as SessionConfig) : null;
-  } catch {
-    return null;
-  }
+export function sessionToConfig(session: Session): SessionConfig {
+  return {
+    id: session.id,
+    seed: session.seed,
+    createdAt: session.startedAt,
+    opponents: session.opponents,
+    botProfiles: session.botProfiles,
+    smallBlind: session.smallBlind,
+    bigBlind: session.bigBlind,
+    buyIn: session.totalBoughtIn,
+    rake: session.rake,
+    learningMode: session.learningMode,
+  };
 }
 
 export function newId(): string {

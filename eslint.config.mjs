@@ -45,6 +45,15 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    rules: {
+      // Leading underscore marks a value that is deliberately unused (e.g. dropping a field).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { varsIgnorePattern: "^_", argsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_", ignoreRestSiblings: true },
+      ],
+    },
+  },
+  {
     files: [
       "src/engine/**/*.ts",
       "src/bots/**/*.ts",

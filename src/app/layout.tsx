@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Link from 'next/link';
 import { AppAnalytics } from '@/components/AppAnalytics';
+import { NavStatus } from '@/components/NavStatus';
+import { RepositoryProvider } from '@/data/RepositoryProvider';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -18,17 +20,23 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        <header className="border-b border-line bg-surface/80">
-          <nav className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-3 text-sm">
-            <Link href="/" className="font-semibold tracking-tight text-foreground">
-              ♠ Poker Sim
-            </Link>
-            <Link href="/" className="text-muted hover:text-foreground">
-              Lobby
-            </Link>
-          </nav>
-        </header>
-        <main className="flex flex-1 flex-col">{children}</main>
+        <RepositoryProvider>
+          <header className="border-b border-line bg-surface/80">
+            <nav className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-3 text-sm">
+              <Link href="/" className="font-semibold tracking-tight text-foreground">
+                ♠ Poker Sim
+              </Link>
+              <Link href="/" className="text-muted hover:text-foreground">
+                Lobby
+              </Link>
+              <Link href="/history" className="text-muted hover:text-foreground">
+                History
+              </Link>
+              <NavStatus />
+            </nav>
+          </header>
+          <main className="flex flex-1 flex-col">{children}</main>
+        </RepositoryProvider>
         <AppAnalytics />
       </body>
     </html>

@@ -4,7 +4,15 @@ import { RAKE_PRESETS } from '@/bankroll/presets';
 import { buildBotView, decide, PROFILES } from '@/bots';
 import type { SessionConfig } from '../session';
 import { livePots } from '../tableView';
-import { heroNeedsRebuy, initialTableState, isHandInProgress, tableReducer, type TableState } from '../tableReducer';
+import {
+  heroNeedsRebuy,
+  initialTableState,
+  isHandInProgress,
+  restoreTableState,
+  tableReducer,
+  toLiveState,
+  type TableState,
+} from '../tableReducer';
 
 const config = (opponents: number, rakeOn = false): SessionConfig => ({
   id: 's1',
@@ -104,5 +112,35 @@ describe('Live pots during a hand', () => {
       { amount: 1100, eligible: [0, 1, 2] }, // 300 + 300 + 300 + 200 folded
       { amount: 1200, eligible: [1, 2] }, // open pot: 700 + 500 so far; seat 2 can still call
     ]);
+  });
+});
+
+describe('Resume after a refresh', () => {
+  it('restores stacks, button and hand number between hands', () => {
+    let s = initialTableState(config(3));
+    s = tableReducer(s, { type: 'startHand', handId: 'a' });
+    s = playOut(s, mulberry32(5));
+    const live = toLiveState(s);
+    expect(live.inProgress).toBe(false);
+    const restored = restoreTableState(config(3), live);
+    expect(restored.players.map((p) => p.stack)).toEqual(s.players.map((p) => p.stack));
+    expect(restored.button).toBe(s.button);
+    expect(restored.handNumber).toBe(1);
+    expect(restored.hand).toBeNull();
+  });
+
+  it('voids a hand in progress: pre-hand stacks, and the next deal is a new hand number with new cards', () => {
+    let s = initialTableState(config(3));
+    s = tableReducer(s, { type: 'startHand', handId: 'a' });
+    const firstHole = s.hand!.seats[0].holeCards;
+    const live = toLiveState(s); // refresh happens now, blinds already posted
+    expect(live.inProgress).toBe(true);
+    expect(Object.values(live.stacks)).toEqual([20000, 20000, 20000, 20000]);
+
+    let r = restoreTableState(config(3), live);
+    expect(r.players.map((p) => p.stack)).toEqual([20000, 20000, 20000, 20000]);
+    r = tableReducer(r, { type: 'startHand', handId: 'b' });
+    expect(r.hand!.input.handNumber).toBe(2);
+    expect(r.hand!.seats[0].holeCards).not.toEqual(firstHole);
   });
 });

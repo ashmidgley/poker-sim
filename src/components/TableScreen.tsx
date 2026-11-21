@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+import type { KeyValueStore } from '@/data/kv';
+import type { Repository } from '@/data/repository';
 import { useTable } from '@/game/controller';
+import type { LiveState } from '@/game/liveState';
 import type { SessionConfig } from '@/game/session';
 import { buildTableView } from '@/game/tableView';
 import { formatMoney, formatStakes } from '@/lib/format';
@@ -11,8 +15,19 @@ import { ActionLog } from './ActionLog';
 import { BetweenHands } from './BetweenHands';
 import { TableView } from './TableView';
 
-export function TableScreen({ config }: { config: SessionConfig }) {
-  const t = useTable(config);
+export function TableScreen({
+  config,
+  repo,
+  store,
+  initial,
+}: {
+  config: SessionConfig;
+  repo: Repository;
+  store: KeyValueStore;
+  initial: LiveState | null;
+}) {
+  const router = useRouter();
+  const t = useTable(config, { repo, store, initial });
   const { state, hand, legal, heroSeat, heroToAct, inProgress } = t;
   const view = useMemo(() => buildTableView(state, { revealAll: config.learningMode }), [state, config.learningMode]);
   const name = useCallback(
@@ -32,14 +47,35 @@ export function TableScreen({ config }: { config: SessionConfig }) {
         <span className="text-muted">
           Stack <span className="font-mono text-foreground">{formatMoney(heroStack)}</span>
         </span>
-        <Link href="/" className="ml-auto text-muted hover:text-foreground">
-          Leave table
-        </Link>
+        <div className="ml-auto flex items-center gap-3">
+          <Link href="/" className="text-muted hover:text-foreground" title="The session stays open; resume it from the lobby">
+            Lobby
+          </Link>
+          <button
+            type="button"
+            disabled={t.busy}
+            onClick={async () => {
+              if (await t.endSession()) router.push('/');
+            }}
+            className="rounded-md border border-line px-2.5 py-1 text-muted hover:text-foreground disabled:opacity-50"
+            title={inProgress ? 'The hand in progress will be void' : undefined}
+          >
+            Cash out {formatMoney(inProgress ? (heroHandSeat?.startingStack ?? heroStack) : heroStack)}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <TableView view={view} />
+          {t.notice && (
+            <div role="status" className="flex items-center justify-between rounded-lg border border-accent/60 bg-accent/10 px-3 py-2 text-sm">
+              <span>{t.notice}</span>
+              <button type="button" onClick={t.clearNotice} className="text-muted hover:text-foreground">
+                Dismiss
+              </button>
+            </div>
+          )}
           {state.error && (
             <div role="alert" className="flex items-center justify-between rounded-lg border border-danger/60 bg-danger/10 px-3 py-2 text-sm">
               <span>{state.error}</span>
@@ -69,6 +105,7 @@ export function TableScreen({ config }: { config: SessionConfig }) {
               needsRebuy={t.needsRebuy}
               onNext={t.startHand}
               onRebuy={t.rebuy}
+              busy={t.busy}
             />
           )}
         </div>

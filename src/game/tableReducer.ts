@@ -10,6 +10,7 @@ import {
   type HandState,
 } from '@/engine';
 import type { ArchetypeId } from '@/bots';
+import type { LiveState } from './liveState';
 import type { SessionConfig } from './session';
 
 export interface Player {
@@ -52,6 +53,32 @@ export function initialTableState(config: SessionConfig): TableState {
     })),
   ];
   return { config, players, button: null, handNumber: 0, hand: null, events: [], error: null };
+}
+
+/**
+ * Resume a session from saved live state. A hand that was in progress is
+ * void: the saved stacks are its pre-hand stacks, and its number is used up.
+ */
+export function restoreTableState(config: SessionConfig, live: LiveState | null): TableState {
+  const fresh = initialTableState(config);
+  if (!live) return fresh;
+  return {
+    ...fresh,
+    players: fresh.players.map((p) => (p.seat in live.stacks ? { ...p, stack: live.stacks[p.seat] } : p)),
+    button: live.button,
+    handNumber: live.handNumber,
+  };
+}
+
+/** Snapshot for saving: pre-hand stacks while a hand runs, final stacks once it is over. */
+export function toLiveState(state: TableState): LiveState {
+  const inProgress = isHandInProgress(state);
+  const stacks: Record<number, number> = {};
+  for (const p of state.players) {
+    const dealt = inProgress ? state.hand!.seats.find((s) => s.seat === p.seat) : undefined;
+    stacks[p.seat] = dealt ? dealt.startingStack : p.stack;
+  }
+  return { handNumber: state.handNumber, button: state.button, stacks, inProgress };
 }
 
 export function isHandInProgress(state: TableState): boolean {

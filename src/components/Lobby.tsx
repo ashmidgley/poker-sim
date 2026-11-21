@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   DEFAULT_OPPONENTS,
   DEFAULT_RAKE_PRESET,
@@ -12,9 +12,13 @@ import {
 } from '@/bankroll/presets';
 import { ARCHETYPES, PROFILES, type ArchetypeId } from '@/bots';
 import { DEFAULT_BUY_IN_BB, MAX_BUY_IN_BB, MIN_BUY_IN_BB } from '@/engine';
-import { newId, saveSessionConfig, seededMix, type SessionConfig } from '@/game/session';
+import { useRepository } from '@/data/RepositoryProvider';
+import { DataError, type Session } from '@/data/types';
+import { newId, seededMix } from '@/game/session';
 import { BOT_NAMES } from '@/game/tableReducer';
 import { formatMoney } from '@/lib/format';
+import { OpenSessions } from './OpenSessions';
+import { StartingBankroll } from './StartingBankroll';
 
 export function Lobby() {
   const router = useRouter();
@@ -26,35 +30,84 @@ export function Lobby() {
   const stakes = STAKES_PRESETS.find((s) => s.id === stakesId)!;
   const buyIn = buyInBb * stakes.bigBlind;
 
-  const start = () => {
+  const { status, repo, store } = useRepository();
+  const [bankroll, setBankroll] = useState<{ balance: number; hasHistory: boolean } | null>(null);
+  const [openSessions, setOpenSessions] = useState<Session[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!repo) return;
+    try {
+      const [b, sessions] = await Promise.all([repo.getBankroll(), repo.listSessions(20)]);
+      setBankroll({ balance: b.balance, hasHistory: b.transactions.length > 0 });
+      setOpenSessions(sessions.filter((s) => !s.endedAt));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [repo]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the repository once it is ready
+    if (status === 'ready') void load();
+  }, [status, load]);
+
+  const start = async () => {
+    if (!repo || starting) return;
+    setStarting(true);
+    setError(null);
     const id = newId();
     const seed = newId();
-    const config: SessionConfig = {
-      id,
-      seed,
-      createdAt: new Date().toISOString(),
-      opponents,
-      botProfiles: mixMode === 'random' ? seededMix(seed, opponents) : chosen.slice(0, opponents),
-      smallBlind: stakes.smallBlind,
-      bigBlind: stakes.bigBlind,
-      buyIn,
-      rake: RAKE_PRESETS[DEFAULT_RAKE_PRESET].rake,
-      learningMode: false,
-    };
-    saveSessionConfig(config);
-    router.push(`/play/${id}`);
+    try {
+      await repo.createSession({
+        id,
+        seed,
+        learningMode: false,
+        smallBlind: stakes.smallBlind,
+        bigBlind: stakes.bigBlind,
+        rake: RAKE_PRESETS[DEFAULT_RAKE_PRESET].rake,
+        opponents,
+        botProfiles: mixMode === 'random' ? seededMix(seed, opponents) : chosen.slice(0, opponents),
+        stopLoss: null,
+        buyIn,
+      });
+      router.push(`/play/${id}`);
+    } catch (e) {
+      setStarting(false);
+      if (e instanceof DataError && e.code === 'insufficient_bankroll') {
+        setError(`Your bankroll of ${formatMoney(bankroll?.balance ?? 0)} cannot cover a ${formatMoney(buyIn)} buy-in.`);
+      } else {
+        setError(e instanceof Error ? e.message : String(e));
+      }
+    }
   };
+
+  if (status !== 'ready' || !repo || !bankroll) {
+    return <p className="p-6 text-muted">{error ?? 'Loading…'}</p>;
+  }
+  if (!bankroll.hasHistory) {
+    return <StartingBankroll repo={repo} onDone={load} />;
+  }
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">New cash game</h1>
+      <div className="flex items-baseline justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight">New cash game</h1>
+        <span className="text-sm text-muted">
+          Bankroll <span className="font-mono text-foreground">{formatMoney(bankroll.balance)}</span>
+        </span>
+      </div>
       <p className="mt-1 text-sm text-muted">No-Limit Texas Hold&apos;em against bots.</p>
+
+      {store && openSessions.length > 0 && (
+        <OpenSessions sessions={openSessions} repo={repo} store={store} onChange={load} />
+      )}
 
       <form
         className="mt-6 flex flex-col gap-6 rounded-xl border border-line bg-surface p-5"
         onSubmit={(e) => {
           e.preventDefault();
-          start();
+          void start();
         }}
       >
         <fieldset>
@@ -168,8 +221,17 @@ export function Lobby() {
           </div>
         </fieldset>
 
-        <button type="submit" className="rounded-lg bg-accent py-3 font-semibold text-black hover:brightness-110">
-          Sit down
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={starting}
+          className="rounded-lg bg-accent py-3 font-semibold text-black hover:brightness-110 disabled:opacity-60"
+        >
+          {starting ? 'Starting…' : `Sit down with ${formatMoney(buyIn)}`}
         </button>
       </form>
     </div>

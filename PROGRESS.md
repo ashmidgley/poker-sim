@@ -1,6 +1,6 @@
 # Progress
 
-**Current phase:** Phase 3 verified (next: Phase 4, Persistence)
+**Current phase:** Phase 4 verified (next: Phase 5, Learning mode)
 
 Tick a task as soon as it is done. Tick "Verified" only after the phase's acceptance checks in `PLAN.md` section 10 pass.
 
@@ -42,16 +42,16 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 
 ## Phase 4: Persistence
 
-- [ ] 4.1 Drizzle schema, config, first migration generated, `db:` scripts
-- [ ] 4.2 `db/client.ts`, `server/auth.ts`, `server/validate.ts`, auth tests
-- [ ] 4.3 Routes: health, unlock, lock
-- [ ] 4.4 Routes: settings, sessions, bankroll
-- [ ] 4.5 Routes: hands
-- [ ] 4.6 `summarize.ts` with tests
-- [ ] 4.7 `Repository`, `LocalRepository`, `HttpRepository`, retry queue, tests
-- [ ] 4.8 Unlock screen, gating, controller saves hands and resumes sessions
-- [ ] 4.9 History list and hand replayer
-- [ ] Verified: standard checks pass, localStorage mode and passphrase checked by hand
+- [x] 4.1 Drizzle schema, config, first migration generated, `db:` scripts
+- [x] 4.2 `db/client.ts`, `server/auth.ts`, `server/validate.ts`, auth tests
+- [x] 4.3 Routes: health, unlock, lock
+- [x] 4.4 Routes: settings, sessions, bankroll
+- [x] 4.5 Routes: hands
+- [x] 4.6 `summarize.ts` with tests
+- [x] 4.7 `Repository`, `LocalRepository`, `HttpRepository`, retry queue, tests
+- [x] 4.8 Unlock screen, gating, controller saves hands and resumes sessions
+- [x] 4.9 History list and hand replayer
+- [x] Verified: standard checks pass, localStorage mode and passphrase checked by hand
 
 ## Phase 5: Learning mode
 
@@ -115,3 +115,14 @@ Record here anything built differently from `PLAN.md`, and why. One line each.
 - Phase 3: 5,000-hand simulation rates: VPIP TAG 11%, loose-passive 33%, calling station 57%, maniac 39%; PFR maniac 34% (next highest TAG 7.5%). Slowest bot decision 5 ms. TAG plays tighter than a typical human TAG; thresholds left as the plan's starting values.
 - Phase 3: the Phase 2 placeholder bot was removed; the table reducer tests now drive the real bots.
 - Added at the user's request (not in the plan): Vercel Web Analytics via `@vercel/analytics` (`src/components/AppAnalytics.tsx`, rendered in the root layout). Page views only; UUIDs in URLs are collapsed to `[id]`. Needs Web Analytics enabled in the Vercel project.
+- Phase 4: the first-run "starting bankroll" prompt (PLAN 6.2) was brought forward, because buy-ins are charged to the bankroll from Phase 4 and play would otherwise be blocked at a zero balance. The ledger page and withdrawals UI stay in Phase 6.
+- Phase 4: a hand voided by a refresh uses up its hand number, so the next deal is a new shuffle (the deck is seeded by session and hand number; reusing the number would re-deal the same cards).
+- Phase 4: resume prefers this browser's saved table state; on another browser it rebuilds stacks, button and hand number from the last stored hand (a top-up made after that hand on the other browser is not reflected).
+- Phase 4: with Cache Components, every API handler calls `connection()` first (via `protectedRoute` in `src/server/http.ts`) so no GET is prerendered at build time; the build lists every API route as dynamic. The `/unlock` redirect lives in its own Suspense boundary for the same reason.
+- Phase 4: `/unlock` also works in local-storage mode (it sets the cookie and redirects once `/api/health` reports unlocked), so the passphrase can be checked without a database.
+- Phase 4: the table's "Leave table" became "Lobby" (session stays open) and "Cash out" (ends the session); open sessions are listed on the lobby with Resume and Cash out.
+- Phase 4: the replayer rebuilds hands with the engine from `hand_started` + action events and flags any hand whose replay does not match its stored events; it has a "Show all cards" toggle.
+- Phase 4: the database path is covered by type checks, SQL-shape tests with drizzle's mock driver, and HttpRepository tests with a fake fetch. It has not run against a real database (by design); the user does that after adding Neon.
+- Phase 4: ESLint ignores unused variables prefixed with `_` (used to drop fields from objects).
+- Phase 4: unlock failures wait 600 ms before answering, to slow guessing.
+- Local storage mode keeps hand logs in localStorage (about 5 MB per site), enough for roughly a thousand hands; the database has no such limit.
