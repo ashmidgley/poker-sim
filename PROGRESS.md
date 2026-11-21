@@ -1,6 +1,6 @@
 # Progress
 
-**Current phase:** Phase 1 verified (next: Phase 2, Table UI)
+**Current phase:** Phase 2 verified (next: Phase 3, Bots)
 
 Tick a task as soon as it is done. Tick "Verified" only after the phase's acceptance checks in `PLAN.md` section 10 pass.
 
@@ -21,13 +21,13 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 
 ## Phase 2: Table UI
 
-- [ ] 2.1 `useTable` controller: in-memory session, hand loop, bot turns
-- [ ] 2.2 Lobby setup form (opponents 1 to 8 default 3, stakes, buy-in)
-- [ ] 2.3 Table components (seats, cards, board, pots, markers, stacks, action log)
-- [ ] 2.4 Action controls (slider, quick sizes, keyboard shortcuts)
-- [ ] 2.5 Hand end display, next hand, rebuy prompt
-- [ ] 2.6 Responsive layout
-- [ ] Verified: standard checks pass, manual play-through done
+- [x] 2.1 `useTable` controller: in-memory session, hand loop, bot turns
+- [x] 2.2 Lobby setup form (opponents 1 to 8 default 3, stakes, buy-in)
+- [x] 2.3 Table components (seats, cards, board, pots, markers, stacks, action log)
+- [x] 2.4 Action controls (slider, quick sizes, keyboard shortcuts)
+- [x] 2.5 Hand end display, next hand, rebuy prompt
+- [x] 2.6 Responsive layout
+- [x] Verified: standard checks pass, manual play-through done
 
 ## Phase 3: Bots
 
@@ -102,3 +102,9 @@ Record here anything built differently from `PLAN.md`, and why. One line each.
 - A street also closes when exactly one seat is active and it has nothing to call (it has no one to bet against), so a lone big blind behind all-in blinds is not asked to check.
 - `rng.ts` has an extra `"button"` stream for choosing the first hand's button.
 - ESLint purity rule also bans `Math.random`, `Date.now`, `new Date` and `crypto` in the pure directories, and bars the engine from importing bots, analysis or bankroll.
+- Phase 2: `src/bankroll/presets.ts` (stakes and rake presets) created early because the setup form needs stakes; Phase 6 adds custom stakes and rake to the form. Sessions use the live rake preset until then.
+- Phase 2: session configs are kept in localStorage (`src/game/session.ts`) so a refresh finds the table; a refresh mid-session still restarts at hand 0 until Phase 4 adds resume.
+- Phase 2: the table reducer lives in `src/game/tableReducer.ts` (pure, unit-tested) and `useTable` in `controller.ts` wraps it. Bot randomness is seeded per decision from session seed, hand number and action count.
+- Phase 2: live pots during a hand split only at all-in amounts (`livePots` in `src/game/tableView.ts`); final pots still come from the engine.
+- Phase 2: on phones the table height is capped at 56% of the viewport so the controls stay on screen.
+- Phase 2 browser note: the Claude in Chrome `key "r"` action reloads the page in this setup; a real R keypress (and a dispatched keydown) raises correctly.
