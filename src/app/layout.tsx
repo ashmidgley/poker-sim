@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import Link from 'next/link';
+import { AppAnalytics } from '@/components/AppAnalytics';
 import './globals.css';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
           </nav>
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
+        <AppAnalytics />
       </body>
     </html>
   );

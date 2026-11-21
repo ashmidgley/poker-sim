@@ -9,6 +9,7 @@ import {
   type HandEvent,
   type HandState,
 } from '@/engine';
+import type { ArchetypeId } from '@/bots';
 import type { SessionConfig } from './session';
 
 export interface Player {
@@ -16,6 +17,7 @@ export interface Player {
   playerId: string;
   name: string;
   isHuman: boolean;
+  profile: ArchetypeId | null; // null for the human
   stack: number; // between hands; during a hand the HandState holds live stacks
 }
 
@@ -35,16 +37,17 @@ export type TableAction =
   | { type: 'rebuy'; amount: number }
   | { type: 'clearError' };
 
-const BOT_NAMES = ['Ava', 'Bruno', 'Chen', 'Dara', 'Eli', 'Farah', 'Gus', 'Hana'];
+export const BOT_NAMES = ['Ava', 'Bruno', 'Chen', 'Dara', 'Eli', 'Farah', 'Gus', 'Hana'];
 
 export function initialTableState(config: SessionConfig): TableState {
   const players: Player[] = [
-    { seat: 0, playerId: 'hero', name: 'You', isHuman: true, stack: config.buyIn },
+    { seat: 0, playerId: 'hero', name: 'You', isHuman: true, profile: null, stack: config.buyIn },
     ...Array.from({ length: config.opponents }, (_, i) => ({
       seat: i + 1,
       playerId: `bot-${i + 1}`,
       name: BOT_NAMES[i],
       isHuman: false,
+      profile: config.botProfiles[i],
       stack: 100 * config.bigBlind,
     })),
   ];

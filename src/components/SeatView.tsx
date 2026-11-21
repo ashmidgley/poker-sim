@@ -19,6 +19,7 @@ export interface SeatViewModel {
   lastAction: string | null;
   won: number; // amount won this hand (0 if none)
   handLabel: string | null; // e.g. showdown description
+  styleLabel: string | null; // bot archetype, shown in learning mode only
   badge?: ReactNode; // extra content (learning mode, archetype label)
 }
 
@@ -71,6 +72,9 @@ export function SeatView({ m }: { m: SeatViewModel }) {
             <span className="text-muted">{m.lastAction}</span>
           )}
         </div>
+      )}
+      {m.styleLabel && (
+        <div className="rounded-full border border-line bg-black/40 px-2 text-[10px] text-muted">{m.styleLabel}</div>
       )}
       {m.badge}
     </div>

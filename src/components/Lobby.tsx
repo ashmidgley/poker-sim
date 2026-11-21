@@ -10,8 +10,10 @@ import {
   RAKE_PRESETS,
   STAKES_PRESETS,
 } from '@/bankroll/presets';
+import { ARCHETYPES, PROFILES, type ArchetypeId } from '@/bots';
 import { DEFAULT_BUY_IN_BB, MAX_BUY_IN_BB, MIN_BUY_IN_BB } from '@/engine';
-import { newId, saveSessionConfig, type SessionConfig } from '@/game/session';
+import { newId, saveSessionConfig, seededMix, type SessionConfig } from '@/game/session';
+import { BOT_NAMES } from '@/game/tableReducer';
 import { formatMoney } from '@/lib/format';
 
 export function Lobby() {
@@ -19,16 +21,20 @@ export function Lobby() {
   const [opponents, setOpponents] = useState(DEFAULT_OPPONENTS);
   const [stakesId, setStakesId] = useState(STAKES_PRESETS[0].id);
   const [buyInBb, setBuyInBb] = useState(DEFAULT_BUY_IN_BB);
+  const [mixMode, setMixMode] = useState<'random' | 'custom'>('random');
+  const [chosen, setChosen] = useState<ArchetypeId[]>(() => Array.from({ length: 8 }, (_, i) => ARCHETYPES[i % 4]));
   const stakes = STAKES_PRESETS.find((s) => s.id === stakesId)!;
   const buyIn = buyInBb * stakes.bigBlind;
 
   const start = () => {
     const id = newId();
+    const seed = newId();
     const config: SessionConfig = {
       id,
-      seed: newId(),
+      seed,
       createdAt: new Date().toISOString(),
       opponents,
+      botProfiles: mixMode === 'random' ? seededMix(seed, opponents) : chosen.slice(0, opponents),
       smallBlind: stakes.smallBlind,
       bigBlind: stakes.bigBlind,
       buyIn,
@@ -71,6 +77,52 @@ export function Lobby() {
           <p className="mt-1.5 text-xs text-muted">
             {opponents === 1 ? 'Heads-up' : `${opponents + 1}-handed table`}
           </p>
+        </fieldset>
+
+        <fieldset>
+          <legend className="text-sm font-medium">Opponent styles</legend>
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            {(['random', 'custom'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={mixMode === m}
+                onClick={() => setMixMode(m)}
+                className={`rounded-md border py-2 text-sm ${
+                  mixMode === m ? 'border-accent bg-accent text-black' : 'border-line bg-surface-2 hover:border-accent'
+                }`}
+              >
+                {m === 'random' ? 'Random mix' : 'Choose each'}
+              </button>
+            ))}
+          </div>
+          {mixMode === 'random' ? (
+            <p className="mt-1.5 text-xs text-muted">
+              A hidden mix of tight-aggressive, loose-passive, calling station and maniac. Learning mode shows who is who.
+            </p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {Array.from({ length: opponents }, (_, i) => (
+                <li key={i} className="flex items-center justify-between gap-3 text-sm">
+                  <label htmlFor={`bot-${i}`} className="w-16 text-muted">
+                    {BOT_NAMES[i]}
+                  </label>
+                  <select
+                    id={`bot-${i}`}
+                    value={chosen[i]}
+                    onChange={(e) => setChosen((c) => c.map((v, j) => (j === i ? (e.target.value as ArchetypeId) : v)))}
+                    className="flex-1 rounded-md border border-line bg-surface-2 px-2 py-1.5"
+                  >
+                    {ARCHETYPES.map((a) => (
+                      <option key={a} value={a}>
+                        {PROFILES[a].label}: {PROFILES[a].description}
+                      </option>
+                    ))}
+                  </select>
+                </li>
+              ))}
+            </ul>
+          )}
         </fieldset>
 
         <fieldset>

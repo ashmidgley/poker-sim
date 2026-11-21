@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { legalActions, mulberry32, type Action } from '@/engine';
 import { RAKE_PRESETS } from '@/bankroll/presets';
-import { placeholderDecide } from '../placeholderBot';
+import { buildBotView, decide, PROFILES } from '@/bots';
 import type { SessionConfig } from '../session';
 import { livePots } from '../tableView';
 import { heroNeedsRebuy, initialTableState, isHandInProgress, tableReducer, type TableState } from '../tableReducer';
@@ -14,18 +14,20 @@ const config = (opponents: number, rakeOn = false): SessionConfig => ({
   smallBlind: 100,
   bigBlind: 200,
   buyIn: 20000,
+  botProfiles: (['tag', 'loosePassive', 'callingStation', 'maniac', 'tag', 'loosePassive', 'callingStation', 'maniac'] as const).slice(0, opponents),
   rake: rakeOn ? RAKE_PRESETS.live.rake : RAKE_PRESETS.none.rake,
   learningMode: false,
 });
 
 const chips = (s: TableState) => s.players.reduce((a, p) => a + p.stack, 0);
 
-/** Play out the current hand with everyone (hero included) using the placeholder bot, or shoving. */
+/** Play out the current hand with every seat (hero as tight-aggressive) using the real bots, or the hero shoving. */
 function playOut(state: TableState, rng: () => number, heroShoves = false): TableState {
   let s = state;
   while (isHandInProgress(s)) {
     const legal = legalActions(s.hand!)!;
-    let action: Action = placeholderDecide(legal, rng);
+    const profile = s.players.find((p) => p.seat === legal.seat)!.profile ?? 'tag';
+    let action: Action = decide(buildBotView(s.hand!), PROFILES[profile], rng);
     if (heroShoves && legal.seat === 0 && legal.raise) action = { type: legal.raise.kind, seat: 0, to: legal.raise.maxTo };
     s = tableReducer(s, { type: 'act', action });
     expect(s.error).toBeNull();

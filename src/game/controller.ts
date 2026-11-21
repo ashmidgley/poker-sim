@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useReducer } from 'react';
+import { buildBotView, decide, PROFILES } from '@/bots';
 import { hashSeed, legalActions, mulberry32, type Action } from '@/engine';
-import { placeholderDecide } from './placeholderBot';
 import { newId, type SessionConfig } from './session';
 import { heroNeedsRebuy, initialTableState, isHandInProgress, tableReducer } from './tableReducer';
 
@@ -28,11 +28,12 @@ export function useTable(config: SessionConfig) {
     // Stateless, reproducible bot randomness: one stream per decision.
     const rng = mulberry32(hashSeed(`${config.seed}:${hand.input.handNumber}:bots:${hand.actions.length}`));
     const delay = BOT_DELAY_MIN_MS + Math.floor(rng() * (BOT_DELAY_MAX_MS - BOT_DELAY_MIN_MS));
+    const profile = state.players.find((p) => p.seat === botLegal.seat)?.profile ?? 'tag';
     const timer = setTimeout(() => {
-      dispatch({ type: 'act', action: placeholderDecide(botLegal, rng) });
+      dispatch({ type: 'act', action: decide(buildBotView(hand), PROFILES[profile], rng) });
     }, delay);
     return () => clearTimeout(timer);
-  }, [hand, heroSeat, config.seed]);
+  }, [hand, heroSeat, config.seed, state.players]);
 
   const startHand = useCallback(() => dispatch({ type: 'startHand', handId: newId() }), []);
   const act = useCallback((action: Action) => dispatch({ type: 'act', action }), []);

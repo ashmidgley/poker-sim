@@ -1,3 +1,4 @@
+import { PROFILES } from '@/bots';
 import { blindSeats, type HandEvent, type Pot, type SeatState } from '@/engine';
 import { formatMoney } from '@/lib/format';
 import type { SeatViewModel } from '@/components/SeatView';
@@ -85,6 +86,7 @@ export function buildTableView(state: TableState, opts: { revealAll?: boolean } 
       lastAction: folded ? 'Folded' : (lastAction.get(p.seat) ?? null),
       won: won.get(p.seat) ?? 0,
       handLabel: shown.get(p.seat) ?? null,
+      styleLabel: opts.revealAll && p.profile ? PROFILES[p.profile].label : null,
     };
   });
 

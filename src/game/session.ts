@@ -1,4 +1,5 @@
-import type { RakeConfig } from '@/engine';
+import { hashSeed, mulberry32, type RakeConfig } from '@/engine';
+import { isArchetypeId, randomMix, type ArchetypeId } from '@/bots';
 
 /** Everything needed to run a table session. Amounts are cents. */
 export interface SessionConfig {
@@ -6,6 +7,7 @@ export interface SessionConfig {
   seed: string;
   createdAt: string; // ISO
   opponents: number; // 1..8
+  botProfiles: ArchetypeId[]; // index i is the bot in seat i + 1
   smallBlind: number;
   bigBlind: number;
   buyIn: number;
@@ -15,9 +17,21 @@ export interface SessionConfig {
 
 const KEY = (id: string) => `poker-sim:session-config:${id}`;
 
+/** A seeded random archetype mix for a session. */
+export function seededMix(seed: string, count: number): ArchetypeId[] {
+  return randomMix(count, mulberry32(hashSeed(`${seed}:bot-mix`)));
+}
+
+/** Fill in anything an older stored config lacks. */
+export function normalizeConfig(raw: SessionConfig): SessionConfig {
+  const valid =
+    Array.isArray(raw.botProfiles) && raw.botProfiles.length === raw.opponents && raw.botProfiles.every(isArchetypeId);
+  return valid ? raw : { ...raw, botProfiles: seededMix(raw.seed, raw.opponents) };
+}
+
 /**
- * Phase 2 keeps session configs in localStorage so a refresh can find the
- * table again. Phase 4 moves this behind the Repository.
+ * Session configs live in localStorage so a refresh can find the table
+ * again. Phase 4 moves this behind the Repository.
  */
 export function saveSessionConfig(config: SessionConfig): void {
   try {
@@ -30,7 +44,7 @@ export function saveSessionConfig(config: SessionConfig): void {
 export function loadSessionConfig(id: string): SessionConfig | null {
   try {
     const raw = localStorage.getItem(KEY(id));
-    return raw ? (JSON.parse(raw) as SessionConfig) : null;
+    return raw ? normalizeConfig(JSON.parse(raw) as SessionConfig) : null;
   } catch {
     return null;
   }

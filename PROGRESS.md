@@ -1,6 +1,6 @@
 # Progress
 
-**Current phase:** Phase 2 verified (next: Phase 3, Bots)
+**Current phase:** Phase 3 verified (next: Phase 4, Persistence)
 
 Tick a task as soon as it is done. Tick "Verified" only after the phase's acceptance checks in `PLAN.md` section 10 pass.
 
@@ -31,14 +31,14 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 
 ## Phase 3: Bots
 
-- [ ] 3.1 `chen.ts` with tests
-- [ ] 3.2 `view.ts` (`BotView`) with the no-hidden-information test
-- [ ] 3.3 `profiles.ts`
-- [ ] 3.4 `decide.ts` preflop
-- [ ] 3.5 `decide.ts` postflop
-- [ ] 3.6 Bots wired into the controller, bot mix on the setup form
-- [ ] 3.7 Sanity simulation test (5,000 bot-only hands)
-- [ ] Verified: standard checks pass, archetypes behave like their names
+- [x] 3.1 `chen.ts` with tests
+- [x] 3.2 `view.ts` (`BotView`) with the no-hidden-information test
+- [x] 3.3 `profiles.ts`
+- [x] 3.4 `decide.ts` preflop
+- [x] 3.5 `decide.ts` postflop
+- [x] 3.6 Bots wired into the controller, bot mix on the setup form
+- [x] 3.7 Sanity simulation test (5,000 bot-only hands)
+- [x] Verified: standard checks pass, archetypes behave like their names
 
 ## Phase 4: Persistence
 
@@ -86,9 +86,9 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 
 ## User steps (not for the builder)
 
-- [ ] Vercel project created and repository connected
+- [x] Vercel project created and repository connected (pushes to `main` deploy to production)
 - [ ] Neon Postgres added from the Vercel Marketplace (`DATABASE_URL` set)
-- [ ] `APP_PASSPHRASE` set
+- [x] `APP_PASSPHRASE` set in Vercel
 - [ ] Migrations run (`pnpm db:migrate`)
 - [ ] Deployed and smoke-tested
 
@@ -108,3 +108,10 @@ Record here anything built differently from `PLAN.md`, and why. One line each.
 - Phase 2: live pots during a hand split only at all-in amounts (`livePots` in `src/game/tableView.ts`); final pots still come from the engine.
 - Phase 2: on phones the table height is capped at 56% of the viewport so the controls stay on screen.
 - Phase 2 browser note: the Claude in Chrome `key "r"` action reloads the page in this setup; a real R keypress (and a dispatched keydown) raises correctly.
+- Phase 3: `BotView` recovers each action's street by replaying the public actions (the engine's `HandState.actions` has no street); it still contains no other hole cards and no deck (tested).
+- Phase 3: a bot never folds when it can check for free; the plan's call/check/fold fallback only covered illegal intents.
+- Phase 3: facing two or more raises without having raised uses the same rule as facing a re-raise (all-in with Chen >= 16, call with Chen >= the re-raise threshold).
+- Phase 3: `SessionConfig` gained `botProfiles` (archetype per bot seat). Random mixes are seeded from the session seed and use every archetype once before repeating. Older stored configs get a seeded mix on load.
+- Phase 3: 5,000-hand simulation rates: VPIP TAG 11%, loose-passive 33%, calling station 57%, maniac 39%; PFR maniac 34% (next highest TAG 7.5%). Slowest bot decision 5 ms. TAG plays tighter than a typical human TAG; thresholds left as the plan's starting values.
+- Phase 3: the Phase 2 placeholder bot was removed; the table reducer tests now drive the real bots.
+- Added at the user's request (not in the plan): Vercel Web Analytics via `@vercel/analytics` (`src/components/AppAnalytics.tsx`, rendered in the root layout). Page views only; UUIDs in URLs are collapsed to `[id]`. Needs Web Analytics enabled in the Vercel project.
