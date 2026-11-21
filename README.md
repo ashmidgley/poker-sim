@@ -9,7 +9,7 @@ You play one seat against 1 to 8 bots (default 3). Every hand is stored as an ev
 
 ## Status
 
-Phase 4 of 7 is complete. The game is playable against bots, every hand is saved and replayable, and sessions resume after a refresh. Without a database the app saves to the browser; with Neon connected it saves through the passphrase-protected API.
+Phase 5 of 7 is complete. The game is playable against bots, every hand is saved and replayable, and sessions resume after a refresh. Without a database the app saves to the browser; with Neon connected it saves through the passphrase-protected API.
 
 | Phase | What it delivers | Status |
 |---|---|---|
@@ -17,8 +17,8 @@ Phase 4 of 7 is complete. The game is playable against bots, every hand is saved
 | 2. Table UI | Lobby, table, action controls, rebuys, phone layout | ✅ Done |
 | 3. Bots | Four opponent styles, bot mix on the setup form | ✅ Done |
 | 4. Persistence | Hands saved and replayable, resume after refresh, passphrase-protected API, Neon Postgres | ✅ Done |
-| 5. Learning mode | Face-up cards, win % per player, outs, plain-English explanations | Next |
-| 6. Bankroll | Ledger, buy-ins and cash-outs, win rate before and after rake, stake guidance | Planned |
+| 5. Learning mode | Face-up cards, win % per player, outs, plain-English explanations | ✅ Done |
+| 6. Bankroll | Ledger, buy-ins and cash-outs, win rate before and after rake, stake guidance | Next |
 | 7. Extras | Variance simulator, decision review, fast-forward after folding | Planned |
 
 Task-level progress and every deviation from the plan are in [`PROGRESS.md`](PROGRESS.md). The full design is in [`PLAN.md`](PLAN.md).
@@ -32,6 +32,7 @@ Task-level progress and every deviation from the plan are in [`PROGRESS.md`](PRO
 - **Bankroll.** A starting bankroll on first run. Buy-ins, rebuys and top-ups come out of it; cashing out puts your stack back. You cannot buy in for more than you have.
 - **Sessions.** Every completed hand is saved. A refresh resumes at the next hand (a hand interrupted mid-way is void and your stack returns to what it was before it). Open sessions are listed in the lobby with Resume and Cash out.
 - **History.** Every hand with position, cards, board and result, and a replayer that steps through the action forwards and back, with an option to show every player's cards.
+- **Learning mode.** Choose Learning in the lobby for a play-money session where every hand is face up. Each seat shows its chance of winning, what it holds and its outs; the leader is badged; a panel explains who is ahead, what the players behind need, and your pot odds against your equity when you face a bet. Folded hands stay visible, dimmed. The same overlay is available on any hand in the replayer. Learning hands never touch your bankroll and are excluded from stats.
 - **Opponents.**
 
   | Style | Plays like |
@@ -55,7 +56,7 @@ Task-level progress and every deviation from the plan are in [`PROGRESS.md`](PRO
 | Database | Neon Postgres from the Vercel Marketplace, Drizzle ORM, Neon HTTP driver; falls back to browser storage when not connected |
 | Validation | zod on every API request body |
 | Charts (Phase 6) | Recharts |
-| Equity in the UI (Phase 5) | Web Worker |
+| Equity in the UI | Web Worker: exact enumeration from the flop on, a seeded 20,000-runout Monte Carlo preflop |
 
 The game engine is plain TypeScript with no React, network or randomness of its own. It is a reducer, `(state, action) -> { state, events }`, driven by a seeded random number generator. The same session seed always deals the same cards, and any hand can be rebuilt exactly from its starting state and the actions taken. An ESLint rule stops the engine and the other pure modules from importing UI code or calling `Math.random` or `Date.now`.
 
@@ -114,11 +115,13 @@ Once `.env.local` holds the production `DATABASE_URL`, `pnpm dev` reads and writ
 src/
   engine/      Pure poker engine: cards, RNG, evaluator, betting reducer, pots, rake, equity, outs
   bots/        Pure bot logic: Chen formula, player view, style profiles, decisions
+  analysis/    Pure learning-mode explanations (made hands, outs, leader, pot odds)
+  workers/     Equity Web Worker and its typed client
   bankroll/    Stakes and rake presets (stats, guidance and variance arrive in Phases 6 and 7)
   data/        Shared types and zod schemas, Repository (HTTP and localStorage), retry queue, hand summaries
   db/          Drizzle schema and Neon client
   server/      API auth, route wrapper and database service
-  game/        Table session reducer, useTable hook, resume state, replayer, view model, action log text
+  game/        Table session reducer, useTable and useLearning hooks, resume state, replayer, view model, action log text
   components/  Lobby, table, controls, history, replayer, unlock
   lib/         Money formatting
   app/         Routes: lobby, /play/[sessionId], /history, /history/[handId], /unlock, and /api/*
@@ -127,7 +130,7 @@ drizzle/       Generated SQL migrations
 
 ## Tests
 
-89 tests across the engine, bots, table session and data layer, including:
+97 tests across the engine, bots, table session, data layer and learning explanations, including:
 
 - **Chip conservation** over 2,000 random hands of 2 to 9 players.
 - **Exact pot outcomes** for side pots with three all-ins of different sizes, and for split pots with an odd chip.
@@ -135,4 +138,5 @@ drizzle/       Generated SQL migrations
 - **Evaluator accuracy.** The fast hand evaluator agrees with a naive reference on 20,000 random hands.
 - **Deterministic replay.** Any hand rebuilds identically from its seed and actions.
 - **Bot behaviour.** A 5,000-hand bot simulation confirms the four styles play differently, with every action legal.
+- **Learning explanations.** Leaders, outs grouped by what they make, drawing dead, splits, and pot odds on fixed boards.
 - **Data layer.** Bankroll rules (no buy-in beyond the balance, idempotent saves and cash-outs), hand summaries (net, rake share, VPIP, PFR, position), the offline retry queue, passphrase checks, resume after refresh, and the replayer reproducing stored hands.

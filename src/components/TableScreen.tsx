@@ -8,11 +8,13 @@ import type { Repository } from '@/data/repository';
 import { useTable } from '@/game/controller';
 import type { LiveState } from '@/game/liveState';
 import type { SessionConfig } from '@/game/session';
-import { buildTableView } from '@/game/tableView';
+import { buildTableView, withLearning } from '@/game/tableView';
+import { useLearning } from '@/game/useLearning';
 import { formatMoney, formatStakes } from '@/lib/format';
 import { ActionControls } from './ActionControls';
 import { ActionLog } from './ActionLog';
 import { BetweenHands } from './BetweenHands';
+import { LearningPanel } from './LearningPanel';
 import { TableView } from './TableView';
 
 export function TableScreen({
@@ -29,10 +31,14 @@ export function TableScreen({
   const router = useRouter();
   const t = useTable(config, { repo, store, initial });
   const { state, hand, legal, heroSeat, heroToAct, inProgress } = t;
-  const view = useMemo(() => buildTableView(state, { revealAll: config.learningMode }), [state, config.learningMode]);
   const name = useCallback(
     (seat: number) => state.players.find((p) => p.seat === seat)?.name ?? `Seat ${seat}`,
     [state.players],
+  );
+  const learning = useLearning(hand, { enabled: config.learningMode, heroSeat, name, heroToAct });
+  const view = useMemo(
+    () => withLearning(buildTableView(state, { revealAll: config.learningMode }), learning),
+    [state, config.learningMode, learning],
   );
   const hero = state.players.find((p) => p.isHuman)!;
   const heroHandSeat = hand?.seats.find((s) => s.seat === heroSeat);
@@ -44,6 +50,11 @@ export function TableScreen({
         <span className="font-semibold">${formatStakes(config.smallBlind, config.bigBlind)} No-Limit Hold&apos;em</span>
         <span className="text-muted">{config.opponents} opponent{config.opponents === 1 ? '' : 's'}</span>
         <span className="text-muted">Hand #{state.handNumber}</span>
+        {config.learningMode && (
+          <span className="rounded-full border border-good/60 bg-good/10 px-2 py-0.5 text-xs text-good" title="Results do not count toward your bankroll or stats">
+            Learning mode: play money
+          </span>
+        )}
         <span className="text-muted">
           Stack <span className="font-mono text-foreground">{formatMoney(heroStack)}</span>
         </span>
@@ -67,7 +78,8 @@ export function TableScreen({
 
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <TableView view={view} />
+          <TableView view={view} roomy={config.learningMode} />
+          {config.learningMode && <LearningPanel learning={learning} />}
           {t.notice && (
             <div role="status" className="flex items-center justify-between rounded-lg border border-accent/60 bg-accent/10 px-3 py-2 text-sm">
               <span>{t.notice}</span>

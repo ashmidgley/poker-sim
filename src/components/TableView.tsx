@@ -12,10 +12,10 @@ function position(index: number, count: number, rx: number, ry: number) {
   return { left: `${50 + rx * Math.cos(angle)}%`, top: `${50 + ry * Math.sin(angle)}%` };
 }
 
-export function TableView({ view }: { view: TableViewModel }) {
+export function TableView({ view, roomy = false }: { view: TableViewModel; roomy?: boolean }) {
   const count = view.seats.length;
   return (
-    <div className="relative mx-auto h-[56svh] min-h-[340px] w-full max-w-5xl sm:h-auto sm:min-h-0 sm:aspect-[16/10]">
+    <div className={`relative mx-auto ${roomy ? 'mt-10 mb-8 sm:mt-12 sm:mb-10' : ''} h-[56svh] min-h-[340px] w-full max-w-5xl sm:h-auto sm:min-h-0 sm:aspect-[16/10]`}>
       {/* Felt */}
       <div className="absolute inset-[11%_4%] rounded-[50%] border-[10px] border-felt-edge bg-[radial-gradient(ellipse_at_center,#1f7a45_0%,#14532d_70%)] shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] sm:inset-[10%_8%]" />
 

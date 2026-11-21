@@ -5,9 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { StoredHand } from '@/data/types';
 import { buildReplay } from '@/game/replayer';
 import type { TableState } from '@/game/tableReducer';
-import { buildTableView } from '@/game/tableView';
+import { buildTableView, withLearning } from '@/game/tableView';
+import { useLearning } from '@/game/useLearning';
 import { formatMoney, formatStakes } from '@/lib/format';
 import { ActionLog } from './ActionLog';
+import { LearningPanel } from './LearningPanel';
 import { TableView } from './TableView';
 
 /** Step through a stored hand, forwards and back (PLAN 4.9). */
@@ -16,6 +18,7 @@ export function HandReplayer({ hand }: { hand: StoredHand }) {
   const last = replay.steps.length - 1;
   const [step, setStep] = useState(last);
   const [revealAll, setRevealAll] = useState(false);
+  const [overlay, setOverlay] = useState(hand.learningMode);
   const current = replay.steps[step];
 
   const tableState: TableState = useMemo(() => {
@@ -42,10 +45,19 @@ export function HandReplayer({ hand }: { hand: StoredHand }) {
     };
   }, [replay, current, hand.sessionId, hand.playedAt, hand.learningMode]);
 
-  const view = useMemo(() => buildTableView(tableState, { revealAll }), [tableState, revealAll]);
   const name = useCallback(
     (seat: number) => tableState.players.find((p) => p.seat === seat)?.name ?? `Seat ${seat}`,
     [tableState.players],
+  );
+  const learning = useLearning(current.state, {
+    enabled: overlay,
+    heroSeat: replay.heroSeat,
+    name,
+    heroToAct: current.state.toAct === replay.heroSeat,
+  });
+  const view = useMemo(
+    () => withLearning(buildTableView(tableState, { revealAll: revealAll || overlay }), learning),
+    [tableState, revealAll, overlay, learning],
   );
 
   useEffect(() => {
@@ -83,7 +95,7 @@ export function HandReplayer({ hand }: { hand: StoredHand }) {
 
       <div className="flex flex-col gap-3 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <TableView view={view} />
+          <TableView view={view} roomy={overlay} />
           <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface p-3">
             <button type="button" className={btn} onClick={() => setStep(0)} disabled={step === 0} aria-label="First step">
               ⏮
@@ -101,16 +113,21 @@ export function HandReplayer({ hand }: { hand: StoredHand }) {
               ⏭
             </button>
             <label className="ml-auto flex items-center gap-2 text-sm text-muted">
-              <input type="checkbox" checked={revealAll} onChange={(e) => setRevealAll(e.target.checked)} />
+              <input type="checkbox" checked={revealAll || overlay} disabled={overlay} onChange={(e) => setRevealAll(e.target.checked)} />
               Show all cards
             </label>
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} />
+              Learning overlay
+            </label>
           </div>
+          {overlay && <LearningPanel learning={learning} />}
         </div>
         <aside className="lg:w-80">
           <ActionLog
             events={current.events}
             name={name}
-            showHoleCards={(seat) => seat === replay.heroSeat || revealAll}
+            showHoleCards={(seat) => seat === replay.heroSeat || revealAll || overlay}
           />
         </aside>
       </div>

@@ -3,6 +3,7 @@ import { blindSeats, type HandEvent, type Pot, type SeatState } from '@/engine';
 import { formatMoney } from '@/lib/format';
 import type { SeatViewModel } from '@/components/SeatView';
 import type { TableState } from './tableReducer';
+import type { Learning } from './useLearning';
 
 const ACTION_WORD = { fold: 'Fold', check: 'Check', call: 'Call', bet: 'Bet', raise: 'Raise' } as const;
 
@@ -97,4 +98,16 @@ export function buildTableView(state: TableState, opts: { revealAll?: boolean } 
   const pots = hand && !complete ? livePots(hand.seats) : [];
 
   return { seats, bets, potTotal, pots, board: hand?.board ?? [], awards, rake };
+}
+
+/** Merge learning-mode analysis (win %, leader, made hand, outs) into the seat view models. */
+export function withLearning(view: TableViewModel, learning: Learning | null): TableViewModel {
+  if (!learning) return view;
+  return {
+    ...view,
+    seats: view.seats.map((seat) => {
+      const l = learning.seats.get(seat.seat);
+      return l ? { ...seat, learning: { winPct: l.winPct, leader: l.leader, madeHand: l.madeHand, outs: l.outs } } : seat;
+    }),
+  };
 }

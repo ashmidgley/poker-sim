@@ -60,6 +60,8 @@ const eslintConfig = defineConfig([
       "src/analysis/**/*.ts",
       "src/bankroll/**/*.ts",
       "src/data/summarize.ts",
+      "src/workers/equity.worker.ts",
+      "src/workers/equityProtocol.ts",
     ],
     rules: {
       "no-restricted-imports": ["error", pureImportBans],

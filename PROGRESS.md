@@ -1,6 +1,6 @@
 # Progress
 
-**Current phase:** Phase 4 verified (next: Phase 5, Learning mode)
+**Current phase:** Phase 5 verified (next: Phase 6, Bankroll)
 
 Tick a task as soon as it is done. Tick "Verified" only after the phase's acceptance checks in `PLAN.md` section 10 pass.
 
@@ -55,13 +55,13 @@ Tick a task as soon as it is done. Tick "Verified" only after the phase's accept
 
 ## Phase 5: Learning mode
 
-- [ ] 5.1 Equity Web Worker and client
-- [ ] 5.2 `explain.ts` with tests
-- [ ] 5.3 Learning mode on the setup form, session and hand flag, banner
-- [ ] 5.4 Learning UI: face-up cards, win percentages, leader, made hands, outs
-- [ ] 5.5 Pot odds against equity panel and explanation panel
-- [ ] 5.6 Learning overlay in the replayer
-- [ ] Verified: standard checks pass, worker bundles, learning session checked by hand
+- [x] 5.1 Equity Web Worker and client
+- [x] 5.2 `explain.ts` with tests
+- [x] 5.3 Learning mode on the setup form, session and hand flag, banner
+- [x] 5.4 Learning UI: face-up cards, win percentages, leader, made hands, outs
+- [x] 5.5 Pot odds against equity panel and explanation panel
+- [x] 5.6 Learning overlay in the replayer
+- [x] Verified: standard checks pass, worker bundles, learning session checked by hand
 
 ## Phase 6: Bankroll
 
@@ -129,3 +129,9 @@ Record here anything built differently from `PLAN.md`, and why. One line each.
 - Setup: `drizzle.config.ts` loads `.env.local` itself (drizzle-kit does not), so `pnpm db:migrate` uses the same `DATABASE_URL` as `next dev`.
 - Setup: Vercel stores production variables as sensitive, so `vercel env pull` writes them as empty strings; the connection string was copied from the Neon console into `.env.local` instead. Empty values are treated as unset by the app.
 - Builder note: `.env.local` now holds the production `DATABASE_URL`. Local development and checks must run with it overridden (`DATABASE_URL= pnpm dev`) so they use browser storage, never production.
+- Phase 5: the worker and a same-thread fallback share one function (`computeEquity` in `src/workers/equityProtocol.ts`); the client resolves superseded requests to null so stale percentages never show. Turbopack bundles the worker as its own chunk (seen loading in the browser).
+- Phase 5: equity is recomputed when the board or the set of players still in changes, not on every bet; the preflop Monte Carlo is seeded from the session seed, hand number and street so the numbers are reproducible.
+- Phase 5: the explanation names the leader, then one line per player behind (hero first) with their made hand, outs grouped by what they make ("9 to a flush, 3 to a pair") and win chance. Preflop it gives each player's win rate; on the river it names the winner or the split. On the river the pot-odds box says whether a call wins, splits or loses, since every card is known.
+- Phase 5: "outs" are cards that put a player ahead or level on the next card; a player behind with no such card is described as needing help on both turn and river, and with 0% equity as drawing dead.
+- Phase 5: the replayer's learning overlay is on by default for learning hands and can be switched on for any hand.
+- Phase 5: the lobby's new Mode choice (Play or Learning) labels the buy-in "(play money)" for learning sessions; learning sessions skip the bankroll check and never write to the ledger (already enforced by both repositories).

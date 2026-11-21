@@ -26,6 +26,7 @@ export function Lobby() {
   const [stakesId, setStakesId] = useState(STAKES_PRESETS[0].id);
   const [buyInBb, setBuyInBb] = useState(DEFAULT_BUY_IN_BB);
   const [mixMode, setMixMode] = useState<'random' | 'custom'>('random');
+  const [learningMode, setLearningMode] = useState(false);
   const [chosen, setChosen] = useState<ArchetypeId[]>(() => Array.from({ length: 8 }, (_, i) => ARCHETYPES[i % 4]));
   const stakes = STAKES_PRESETS.find((s) => s.id === stakesId)!;
   const buyIn = buyInBb * stakes.bigBlind;
@@ -62,7 +63,7 @@ export function Lobby() {
       await repo.createSession({
         id,
         seed,
-        learningMode: false,
+        learningMode,
         smallBlind: stakes.smallBlind,
         bigBlind: stakes.bigBlind,
         rake: RAKE_PRESETS[DEFAULT_RAKE_PRESET].rake,
@@ -110,6 +111,30 @@ export function Lobby() {
           void start();
         }}
       >
+        <fieldset>
+          <legend className="text-sm font-medium">Mode</legend>
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            {([false, true] as const).map((learn) => (
+              <button
+                key={String(learn)}
+                type="button"
+                aria-pressed={learningMode === learn}
+                onClick={() => setLearningMode(learn)}
+                className={`rounded-md border py-2 text-sm ${
+                  learningMode === learn ? 'border-accent bg-accent text-black' : 'border-line bg-surface-2 hover:border-accent'
+                }`}
+              >
+                {learn ? 'Learning' : 'Play'}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-muted">
+            {learningMode
+              ? 'Every hand face up, with win chances, outs and an explanation on each street. Play money: nothing touches your bankroll or stats.'
+              : 'Normal play: opponents\' cards stay hidden and results count toward your bankroll.'}
+          </p>
+        </fieldset>
+
         <fieldset>
           <legend className="text-sm font-medium">Opponents</legend>
           <div className="mt-2 grid grid-cols-8 gap-1.5">
@@ -231,7 +256,7 @@ export function Lobby() {
           disabled={starting}
           className="rounded-lg bg-accent py-3 font-semibold text-black hover:brightness-110 disabled:opacity-60"
         >
-          {starting ? 'Starting…' : `Sit down with ${formatMoney(buyIn)}`}
+          {starting ? 'Starting…' : `Sit down with ${formatMoney(buyIn)}${learningMode ? ' (play money)' : ''}`}
         </button>
       </form>
     </div>

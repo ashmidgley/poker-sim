@@ -20,6 +20,12 @@ export interface SeatViewModel {
   won: number; // amount won this hand (0 if none)
   handLabel: string | null; // e.g. showdown description
   styleLabel: string | null; // bot archetype, shown in learning mode only
+  learning?: {
+    winPct: string | null;
+    leader: boolean;
+    madeHand: string;
+    outs: string[] | null;
+  };
   badge?: ReactNode; // extra content (learning mode, archetype label)
 }
 
@@ -70,6 +76,26 @@ export function SeatView({ m }: { m: SeatViewModel }) {
             <span className="text-foreground">{m.handLabel}</span>
           ) : (
             <span className="text-muted">{m.lastAction}</span>
+          )}
+        </div>
+      )}
+      {m.learning && m.inHand && (
+        <div className="flex max-w-full flex-col items-center gap-0.5 text-center text-[10px] leading-tight sm:text-[11px]">
+          <div className="flex items-center gap-1">
+            {m.learning.leader && !m.folded && (
+              <span className="rounded bg-good px-1 font-semibold text-black">LEADS</span>
+            )}
+            {m.learning.winPct !== null && !m.folded && (
+              <span className={`font-mono font-semibold ${m.learning.leader ? 'text-good' : 'text-foreground'}`}>{m.learning.winPct}</span>
+            )}
+          </div>
+          <span className="max-w-full truncate text-muted">
+            {m.folded ? `Would hold ${m.learning.madeHand.charAt(0).toLowerCase()}${m.learning.madeHand.slice(1)}` : m.learning.madeHand}
+          </span>
+          {m.learning.outs && m.learning.outs.length > 0 && !m.folded && (
+            <span className="text-accent" title={`Outs: ${m.learning.outs.join(' ')}`}>
+              {m.learning.outs.length} out{m.learning.outs.length === 1 ? '' : 's'}
+            </span>
           )}
         </div>
       )}
